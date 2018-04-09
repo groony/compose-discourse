@@ -4,10 +4,6 @@ networks:
     external: true
   back:
     driver: bridge
-    ipam:
-      driver: default
-      config:
-      - subnet: 10.0.${SUBNET}.0/24
 services:
   web:
     image: nginx
@@ -16,13 +12,13 @@ services:
     - ./data/nginx:/var/nginx/cache
     volumes_from:
     - app
-    environment:
-    - VIRTUAL_HOST
     networks:
     - back
     - lb_web
     depends_on:
     - app
+    ports:
+    - "80:80"
   app:
     image: indiehosters/discourse
     volumes:
@@ -30,13 +26,13 @@ services:
     - ./data/uploads:/home/discourse/discourse/public/uploads
     - ./data/backups:/home/discourse/discourse/public/backups
     environment:
-    - DISCOURSE_HOSTNAME=$VIRTUAL_HOST
     - POSTGRES_USER=discourse
     - DISCOURSE_SMTP_PORT=587
     - DISCOURSE_SMTP_ADDRESS
     - DISCOURSE_SMTP_USER_NAME
     - DISCOURSE_SMTP_PASSWORD
     - DISCOURSE_DB_PASSWORD
+    - NUM_WEBS
     depends_on:
     - redis
     - postgres
@@ -46,7 +42,6 @@ services:
     image: indiehosters/discourse
     command: bundle exec sidekiq -q critical -q default -q low -v
     environment:
-    - DISCOURSE_HOSTNAME=$VIRTUAL_HOST
     - POSTGRES_USER=discourse
     - DISCOURSE_SMTP_PORT=587
     - DISCOURSE_SMTP_ADDRESS
@@ -58,7 +53,7 @@ services:
     networks:
     - back
   postgres:
-    image: postgres:9.5
+    image: postgres:10.3
     volumes:
     - ./data/postgres:/var/lib/postgresql/data
     networks:
